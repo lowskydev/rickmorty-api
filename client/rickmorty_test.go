@@ -7,11 +7,9 @@ func TestFetchCharactersByName_Found(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
 	if len(chars) <= 20 {
 		t.Errorf("expected more than 20 results (pagination check), got %d", len(chars))
 	}
-
 	for i, c := range chars {
 		if c.Name == "" {
 			t.Errorf("chars[%d].Name is empty", i)
