@@ -99,7 +99,7 @@ func FetchAllCharacters() ([]models.Character, error) {
 		all = append(all, page.Results...)
 		url = page.Info.Next
 		if url != "" {
-			time.Sleep(250 * time.Millisecond)
+			time.Sleep(500 * time.Millisecond)
 		}
 	}
 	return all, nil
@@ -120,7 +120,7 @@ func FetchAllEpisodes() ([]models.Episode, error) {
 		all = append(all, page.Results...)
 		url = page.Info.Next
 		if url != "" {
-			time.Sleep(250 * time.Millisecond)
+			time.Sleep(500 * time.Millisecond)
 		}
 	}
 	return all, nil

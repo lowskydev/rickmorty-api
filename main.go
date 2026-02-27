@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	// Fetch sequentially, not in goroutines
 	fmt.Println("Warming cache...")
 	if _, err := client.GetAllCharacters(); err != nil {
 		fmt.Printf("warning: could not pre-fetch characters: %v\n", err)
