@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/lowskydev/rickmorty-api/models"
 	"net/http"
 )
 
@@ -29,4 +30,33 @@ func getJSON(url string, target any) error {
 	}
 
 	return nil
+}
+
+// returns all characters whose name contains the search term
+func FetchCharactersByName(name string) ([]models.Character, error) {
+	var all []models.Character
+
+	// Start at page 1
+	// After each page API tells the URL for the next one
+	url := fmt.Sprintf("%s/character?name=%s", baseURL, name)
+
+	for url != "" {
+		var page models.CharacterPage
+
+		if err := getJSON(url, &page); err != nil {
+			return nil, err
+		}
+
+		if len(page.Results) == 0 {
+			break
+		}
+
+		all = append(all, page.Results...)
+
+		// page.Info.Next is either URL "https://...?page=2"
+		// or "" if this was the last page
+		url = page.Info.Next
+	}
+
+	return all, nil
 }
