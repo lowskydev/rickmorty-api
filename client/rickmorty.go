@@ -60,3 +60,43 @@ func FetchCharactersByName(name string) ([]models.Character, error) {
 
 	return all, nil
 }
+
+// returns all locations where name contains the search term
+func FetchLocationsByName(name string) ([]models.Location, error) {
+	var all []models.Location
+	url := fmt.Sprintf("%s/location?name=%s", baseURL, name)
+
+	for url != "" {
+		var page models.LocationPage
+		if err := getJSON(url, &page); err != nil {
+			return nil, err
+		}
+		if len(page.Results) == 0 {
+			break
+		}
+		all = append(all, page.Results...)
+		url = page.Info.Next
+	}
+
+	return all, nil
+}
+
+// returns all episodes where name contains the search term
+func FetchEpisodesByName(name string) ([]models.Episode, error) {
+	var all []models.Episode
+	url := fmt.Sprintf("%s/episode?name=%s", baseURL, name)
+
+	for url != "" {
+		var page models.EpisodePage
+		if err := getJSON(url, &page); err != nil {
+			return nil, err
+		}
+		if len(page.Results) == 0 {
+			break
+		}
+		all = append(all, page.Results...)
+		url = page.Info.Next
+	}
+
+	return all, nil
+}
