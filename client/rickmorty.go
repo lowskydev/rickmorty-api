@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/lowskydev/rickmorty-api/models"
 )
@@ -97,6 +98,9 @@ func FetchAllCharacters() ([]models.Character, error) {
 		}
 		all = append(all, page.Results...)
 		url = page.Info.Next
+		if url != "" {
+			time.Sleep(250 * time.Millisecond)
+		}
 	}
 	return all, nil
 }
@@ -115,6 +119,9 @@ func FetchAllEpisodes() ([]models.Episode, error) {
 		}
 		all = append(all, page.Results...)
 		url = page.Info.Next
+		if url != "" {
+			time.Sleep(250 * time.Millisecond)
+		}
 	}
 	return all, nil
 }

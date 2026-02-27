@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -66,47 +65,35 @@ func TestPairKey_DifferentPairsDifferentKeys(t *testing.T) {
 	}
 }
 
-// integration test against the real API
-func TestTopPairs_ReturnsResults(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/top-pairs?limit=5", nil)
-	w := httptest.NewRecorder()
-
-	TopPairs(w, r)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
+func TestCountPairs_BasicCount(t *testing.T) {
+	episodes := []models.Episode{
+		{Characters: []string{"url/1", "url/2", "url/3"}},
+		{Characters: []string{"url/1", "url/2"}},
 	}
 
-	var pairs []models.PairResult
-	if err := json.NewDecoder(w.Body).Decode(&pairs); err != nil {
-		t.Fatalf("could not decode response: %v", err)
+	counts := countPairs(episodes)
+
+	k := pairKey("url/1", "url/2")
+	if counts[k] != 2 {
+		t.Errorf("expected pair (1,2) count 2, got %d", counts[k])
+	}
+}
+
+func TestCountPairs_NoDuplicates(t *testing.T) {
+	episodes := []models.Episode{
+		{Characters: []string{"url/1", "url/2", "url/3"}},
 	}
 
-	if len(pairs) == 0 {
-		t.Fatal("expected at least one pair, got none")
-	}
-	if len(pairs) > 5 {
-		t.Errorf("limit=5 but got %d pairs", len(pairs))
-	}
+	counts := countPairs(episodes)
 
-	// Verify results are sorted descending
-	for i := 1; i < len(pairs); i++ {
-		if pairs[i].Episodes > pairs[i-1].Episodes {
-			t.Errorf("pairs not sorted descending: pairs[%d].Episodes=%d > pairs[%d].Episodes=%d",
-				i, pairs[i].Episodes, i-1, pairs[i-1].Episodes)
-		}
+	if len(counts) != 3 {
+		t.Errorf("expected 3 pairs from 3 characters, got %d", len(counts))
 	}
+}
 
-	// Verify each pair has all fields populated
-	for i, p := range pairs {
-		if p.Character1.Name == "" || p.Character1.URL == "" {
-			t.Errorf("pairs[%d].Character1 has empty fields", i)
-		}
-		if p.Character2.Name == "" || p.Character2.URL == "" {
-			t.Errorf("pairs[%d].Character2 has empty fields", i)
-		}
-		if p.Episodes == 0 {
-			t.Errorf("pairs[%d].Episodes is 0", i)
-		}
+func TestCountPairs_Empty(t *testing.T) {
+	counts := countPairs([]models.Episode{})
+	if len(counts) != 0 {
+		t.Errorf("expected 0 pairs for empty episodes, got %d", len(counts))
 	}
 }

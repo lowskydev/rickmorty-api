@@ -19,7 +19,6 @@ func TopPairs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch all characters and all episodes concurrently
 	type charsResult struct {
 		data []models.Character
 		err  error
@@ -33,11 +32,11 @@ func TopPairs(w http.ResponseWriter, r *http.Request) {
 	epsCh := make(chan epsResult, 1)
 
 	go func() {
-		data, err := client.FetchAllCharacters()
+		data, err := client.GetAllCharacters()
 		charsCh <- charsResult{data, err}
 	}()
 	go func() {
-		data, err := client.FetchAllEpisodes()
+		data, err := client.GetAllEpisodes()
 		epsCh <- epsResult{data, err}
 	}()
 
@@ -45,30 +44,23 @@ func TopPairs(w http.ResponseWriter, r *http.Request) {
 	epsRes := <-epsCh
 
 	if charsRes.err != nil || epsRes.err != nil {
+		if charsRes.err != nil {
+			fmt.Printf("characters error: %v\n", charsRes.err)
+		}
+		if epsRes.err != nil {
+			fmt.Printf("episodes error: %v\n", epsRes.err)
+		}
 		http.Error(w, "error fetching data from Rick and Morty API", http.StatusInternalServerError)
 		return
 	}
 
-	// Build a map of character URL -> Character for fast lookups
 	charByURL := make(map[string]models.Character)
 	for _, c := range charsRes.data {
 		charByURL[c.URL] = c
 	}
 
-	// Count how many episodes each pair of characters shares
-	pairCount := make(map[string]int)
-	for _, ep := range epsRes.data {
-		chars := ep.Characters
-		// Generate every unique combination of 2 characters in this episode
-		for i := 0; i < len(chars); i++ {
-			for j := i + 1; j < len(chars); j++ {
-				key := pairKey(chars[i], chars[j])
-				pairCount[key]++
-			}
-		}
-	}
+	pairCount := countPairs(epsRes.data)
 
-	// Convert the map into a slice of PairResult, applying min/max filters
 	var pairs []models.PairResult
 	for key, count := range pairCount {
 		if minEp >= 0 && count < minEp {
@@ -92,7 +84,6 @@ func TopPairs(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// Sort descending by episode count
 	sort.Slice(pairs, func(i, j int) bool {
 		return pairs[i].Episodes > pairs[j].Episodes
 	})
@@ -109,7 +100,20 @@ func TopPairs(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(pairs)
 }
 
-// pairKey builds a stable unique key for a pair of character URLs
+func countPairs(episodes []models.Episode) map[string]int {
+	pairCount := make(map[string]int)
+	for _, ep := range episodes {
+		chars := ep.Characters
+		for i := 0; i < len(chars); i++ {
+			for j := i + 1; j < len(chars); j++ {
+				key := pairKey(chars[i], chars[j])
+				pairCount[key]++
+			}
+		}
+	}
+	return pairCount
+}
+
 func pairKey(urlA, urlB string) string {
 	if urlA > urlB {
 		urlA, urlB = urlB, urlA
@@ -117,7 +121,6 @@ func pairKey(urlA, urlB string) string {
 	return fmt.Sprintf("%s|%s", urlA, urlB)
 }
 
-// parseTopPairsParams reads min, max, limit from query params
 func parseTopPairsParams(r *http.Request) (minEp, maxEp, limit int, err error) {
 	minEp, maxEp, limit = -1, -1, 20
 
